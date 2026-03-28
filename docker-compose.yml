@@ -1,0 +1,43 @@
+include:
+  - signoz/docker/docker-compose.yaml
+
+services:
+  api-server:
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    container_name: fastapi-app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src:/app
+    environment:
+      - OTEL_SERVICE_NAME=fastapi-app
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+      - OTEL_LOGS_EXPORTER=otlp
+      - OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
+      - OTEL_PYTHON_LOG_CORRELATION=true
+    depends_on:
+      - otel-collector
+    networks:
+      - default
+      - signoz-net
+  cache:
+    image: valkey/valkey:latest
+    container_name: fastapi-cache
+    ports:
+      - "6379:6379"
+    networks:
+      - default
+  db:
+    image: mongo:latest
+    container_name: fastapi-db
+    ports:
+      - "27017:27017"
+    networks:
+      - default
+
+networks:
+  signoz-net:
+    external: true
